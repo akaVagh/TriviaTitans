@@ -1,0 +1,48 @@
+export const quizQuestions = [
+	{
+		question: 'Which planet is known as the Red Planet?',
+		correctAnswer: 'Mars',
+		questionID: '6f645330-22cd-11ee-9d41-172dc0d94xxx',
+		category: 'Astronomy',
+		difficultyLevel: 'Easy',
+		options: ['Mercury', 'Venus', 'Mars', 'Jupiter'],
+		tags: ['planet', 'solar system'],
+	},
+	{
+		question: 'What is the largest planet in our solar system?',
+		correctAnswer: 'Jupiter',
+		questionID: '8b176760-22cd-11ee-9d41-172dc0d94dd3',
+		category: 'Astronomy',
+		difficultyLevel: 'Easy',
+		options: ['Saturn', 'Neptune', 'Uranus', 'Jupiter'],
+		tags: ['planet', 'solar system'],
+	},
+	{
+		question: 'Which planet is closest to the Sun?',
+		correctAnswer: 'Mercury',
+		questionID: '9e57a620-22cd-11ee-9d41-172dc0d94dd3',
+		category: 'Astronomy',
+		difficultyLevel: 'Easy',
+		options: ['Venus', 'Earth', 'Mars', 'Mercury'],
+		tags: ['planet', 'solar system'],
+	},
+	{
+		question: 'Which planet is known for its beautiful rings?',
+		correctAnswer: 'Saturn',
+		questionID: 'b0732a30-22cd-11ee-9d41-172dc0d94dd3',
+		category: 'Astronomy',
+		difficultyLevel: 'Easy',
+		options: ['Jupiter', 'Uranus', 'Neptune', 'Saturn'],
+		tags: ['planet', 'solar system'],
+	},
+	{
+		question:
+			'Which planet is known as the "Morning Star" or "Evening Star"?',
+		correctAnswer: 'Venus',
+		questionID: 'c505f2f0-22cd-11ee-9d41-172dc0d94dd3',
+		category: 'Astronomy',
+		difficultyLevel: 'Easy',
+		options: ['Mars', 'Mercury', 'Venus', 'Uranus'],
+		tags: ['planet', 'solar system'],
+	},
+];

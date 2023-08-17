@@ -1,0 +1,260 @@
+------------------monthly_user_data----------------------
+SELECT
+  document_id as user,
+  DATE_TRUNC(DATE(TIMESTAMP_SECONDS(CAST(match_seconds AS INT64))), MONTH) AS monthly_start_date,
+  SUM(match_points) AS total_points
+FROM (
+  SELECT
+    document_id,
+    JSON_EXTRACT_SCALAR(match, '$.Date._seconds') AS match_seconds,
+    CAST(JSON_EXTRACT_SCALAR(match, '$.Points') AS INT64) AS match_points
+  FROM
+    `serverless-project-21.firestore_export.UserStatistics_raw_latest`,
+    UNNEST(JSON_EXTRACT_ARRAY(data, '$.matchHistory')) AS match
+)
+GROUP BY
+  user,
+  monthly_start_date
+ORDER BY
+  monthly_start_date DESC,
+  total_points DESC;
+--------------------------------------------------------
+
+------------------weekly_user_data----------------------
+WITH MatchData AS (
+  SELECT
+    document_id as user,
+    TIMESTAMP_SECONDS(CAST(JSON_EXTRACT_SCALAR(match, '$.Date._seconds') AS INT64)) AS match_timestamp,
+    CAST(JSON_EXTRACT_SCALAR(match, '$.Points') AS INT64) AS match_points,
+    match AS match_data
+  FROM
+    `serverless-project-21.firestore_export.UserStatistics_raw_latest`,
+    UNNEST(JSON_EXTRACT_ARRAY(data, '$.matchHistory')) AS match
+),
+UserWeeklyPoints AS (
+  SELECT
+    user,
+    match_data,
+    DATE_TRUNC(match_timestamp, WEEK(MONDAY)) AS weekly_start_date,
+    SUM(match_points) AS weekly_points
+  FROM MatchData
+  GROUP BY
+    user,
+    match_data,
+    weekly_start_date
+)
+SELECT
+  user,
+  weekly_start_date,
+  SUM(weekly_points) AS total_points
+FROM UserWeeklyPoints
+GROUP BY
+  user,
+  weekly_start_date
+ORDER BY weekly_start_date DESC;
+--------------------------------------------------------
+------------------daily_user_data----------------------
+WITH MatchData AS (
+  SELECT
+    document_id as user,
+    TIMESTAMP_SECONDS(CAST(JSON_EXTRACT_SCALAR(match, '$.Date._seconds') AS INT64)) AS match_timestamp,
+    CAST(JSON_EXTRACT_SCALAR(match, '$.Points') AS INT64) AS match_points
+  FROM
+    `serverless-project-21.firestore_export.UserStatistics_raw_latest`,
+    UNNEST(JSON_EXTRACT_ARRAY(data, '$.matchHistory')) AS match
+)
+SELECT
+  user,
+  DATE_TRUNC(match_timestamp, DAY) AS daily_start_date,
+  SUM(match_points) AS total_points
+FROM MatchData
+GROUP BY
+  user,
+  daily_start_date
+ORDER BY
+  total_points DESC;
+--------------------------------------------------------
+------------------all_time_user_data----------------------
+SELECT 
+document_id as user,
+JSON_VALUE(JSON_EXTRACT(userStats.DATA, '$.totalPoints')) as score
+FROM 
+`serverless-project-21.firestore_export.UserStatistics_raw_latest` userStats LIMIT 1000
+	
+--------------------------------------------------------
+------------------monthly_top_teams----------------------
+SELECT
+  teamname,
+  DATE_TRUNC(DATE(TIMESTAMP_SECONDS(CAST(match_seconds AS INT64))), MONTH) AS monthly_start_date,
+  SUM(match_points) AS total_points
+FROM (
+  SELECT
+    JSON_VALUE(JSON_EXTRACT(data, '$.teamName')) as teamname,
+    JSON_EXTRACT_SCALAR(match, '$.Date._seconds') AS match_seconds,
+    CAST(JSON_EXTRACT_SCALAR(match, '$.Points') AS INT64) AS match_points
+  FROM
+    `serverless-project-21.firestore_export.TeamStatistics_raw_latest`,
+    UNNEST(JSON_EXTRACT_ARRAY(data, '$.matchHistory')) AS match
+)
+GROUP BY
+  teamname,
+  monthly_start_date
+ORDER BY
+  monthly_start_date DESC,
+  teamname,
+  total_points DESC;
+--------------------------------------------------------
+------------------weekly_top_teams----------------------
+WITH MatchData AS (
+  SELECT
+    JSON_VALUE(JSON_EXTRACT(data, '$.teamName')) as teamname,
+    TIMESTAMP_SECONDS(CAST(JSON_EXTRACT_SCALAR(match, '$.Date._seconds') AS INT64)) AS match_timestamp,
+    CAST(JSON_EXTRACT_SCALAR(match, '$.Points') AS INT64) AS match_points,
+    match AS match_data
+  FROM
+    `serverless-project-21.firestore_export.TeamStatistics_raw_latest`,
+    UNNEST(JSON_EXTRACT_ARRAY(data, '$.matchHistory')) AS match
+),
+TeamWeeklyPoints AS (
+  SELECT
+    teamname,
+    match_data,
+    DATE_TRUNC(match_timestamp, WEEK(MONDAY)) AS weekly_start_date,
+    SUM(match_points) AS weekly_points
+  FROM MatchData
+  GROUP BY
+    teamname,
+    match_data,
+    weekly_start_date
+)
+SELECT
+  teamname,
+  weekly_start_date,
+  SUM(weekly_points) AS total_points
+FROM TeamWeeklyPoints
+GROUP BY
+  teamname,
+  weekly_start_date
+ORDER BY weekly_start_date DESC;
+
+--------------------------------------------------------
+------------------daily_top_teams----------------------
+WITH MatchData AS (
+  SELECT
+    JSON_VALUE(JSON_EXTRACT(data, '$.teamName')) as teamname,
+    TIMESTAMP_SECONDS(CAST(JSON_EXTRACT_SCALAR(match, '$.Date._seconds') AS INT64)) AS match_timestamp,
+    CAST(JSON_EXTRACT_SCALAR(match, '$.Points') AS INT64) AS match_points
+  FROM
+    `serverless-project-21.firestore_export.TeamStatistics_raw_latest`,
+    UNNEST(JSON_EXTRACT_ARRAY(data, '$.matchHistory')) AS match
+)
+SELECT
+  teamname,
+  DATE_TRUNC(match_timestamp, DAY) AS daily_start_date,
+  SUM(match_points) AS total_points
+FROM MatchData
+GROUP BY
+  teamname,
+  daily_start_date
+ORDER BY
+  total_points DESC;
+--------------------------------------------------------
+------------------all_time_team_data----------------------
+SELECT 
+JSON_VALUE(JSON_EXTRACT(teamStats.DATA, '$.teamName')) as team,
+JSON_VALUE(JSON_EXTRACT(teamStats.DATA, '$.totalPoints')) as score
+FROM 
+`serverless-project-21.firestore_export.TeamStatistics_raw_latest` teamStats LIMIT 1000
+	
+--------------------------------------------------------
+------------------category_wise_team----------------------
+WITH MatchData AS (
+  SELECT
+    JSON_VALUE(JSON_EXTRACT(DATA, '$.teamName')) as team,
+    JSON_EXTRACT_SCALAR(match, '$.Category') AS category,
+    JSON_EXTRACT_SCALAR(match, '$.Game') AS game,
+    CAST(JSON_EXTRACT_SCALAR(match, '$.Points') AS INT64) AS match_points
+  FROM
+    `serverless-project-21.firestore_export.TeamStatistics_raw_latest` t,
+    UNNEST(JSON_EXTRACT_ARRAY(t.data, '$.matchHistory')) AS match
+)
+SELECT
+  team,
+  game,
+  category,
+  SUM(match_points) AS total_points
+FROM
+  MatchData
+GROUP BY
+  team,
+  game,
+  category
+ORDER BY
+  team,
+  game;
+
+--------------------------------------------------------
+------------------category_wise_users----------------------
+WITH MatchData AS (
+  SELECT
+    u.document_id AS user,
+    JSON_EXTRACT_SCALAR(match, '$.Game') AS game,
+    JSON_EXTRACT_SCALAR(g.data, '$.category') AS category,
+    CAST(JSON_EXTRACT_SCALAR(match, '$.Points') AS INT64) AS match_points
+  FROM
+    `serverless-project-21.firestore_export.UserStatistics_raw_latest` u,
+    UNNEST(JSON_EXTRACT_ARRAY(u.data, '$.matchHistory')) AS match
+  LEFT JOIN
+    `serverless-project-21.firestore_export.currentGame_raw_latest` g
+  ON
+    JSON_EXTRACT_SCALAR(match, '$.Game') = g.document_id
+)
+SELECT
+  user,
+  game,
+  category,
+  SUM(match_points) AS total_points
+FROM
+  MatchData
+GROUP BY
+  user,
+  game,
+  category
+ORDER BY
+  user,
+  game;
+
+--------------------------------------------------------
+------------------top_users----------------------
+  SELECT
+  document_id AS player,
+  CAST(JSON_EXTRACT(data, '$.totalWins') AS INT64) AS totalWins,
+  CAST(JSON_EXTRACT(data, '$.totalLosses') AS INT64) AS totalLosses,
+  CAST(JSON_EXTRACT(data, '$.totalPoints') AS INT64) AS totalPoints
+FROM
+  `serverless-project-21.firestore_export.UserStatistics_raw_latest`
+  order by totalPoints desc;
+
+--------------------------------------------------------
+------------------top teams----------------------
+  SELECT
+  JSON_VALUE(JSON_EXTRACT(data, '$.teamName')) as team,
+  CAST(JSON_EXTRACT(data, '$.totalWins') AS INT64) AS totalWins,
+  CAST(JSON_EXTRACT(data, '$.totalLosses') AS INT64) AS totalLosses,
+  CAST(JSON_EXTRACT(data, '$.totalPoints') AS INT64) AS totalPoints
+FROM
+  `serverless-project-21.firestore_export.TeamStatistics_raw_latest`
+  order by totalPoints desc;
+
+--------------------------------------------------------
+------------------user engagement(pie chart)----------------------
+   SELECT
+    JSON_VALUE(JSON_EXTRACT(DATA, '$.teamName')) as team,
+    JSON_EXTRACT_SCALAR(match, '$.Category') AS category,
+    JSON_EXTRACT_SCALAR(match, '$.Game') AS game,
+    CAST(JSON_EXTRACT_SCALAR(match, '$.Points') AS INT64) AS match_points,
+    JSON_EXTRACT_SCALAR(match, '$.Difficulty') AS difficulty,
+  FROM
+    `serverless-project-21.firestore_export.TeamStatistics_raw_latest` t,
+    UNNEST(JSON_EXTRACT_ARRAY(t.data, '$.matchHistory')) AS match
+--------------------------------------------------------
